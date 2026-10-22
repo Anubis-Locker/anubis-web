@@ -1,5 +1,5 @@
 {
-  "name": "electerm-web",
+  "name": "anubis-web",
   "version": "5.6.11",
   "description": "Anubis-Security-Tool: terminal/ssh/sftp/rdp/vnc web app (fork of electerm-web)",
   "main": "src/app/app.js",
@@ -23,20 +23,20 @@
     "test3": "node --test test/unit/*.js"
   },
   "license": "MIT",
-  "languageRepo": "https://github.com/ai-security-tool/locales",
+  "languageRepo": "https://github.com/Anubis-Locker/anubis-locales",
   "privacyNoticeLink": "https://docs.anubis.locker/privacy-notice",
   "knownIssuesLink": "https://docs.anubis.locker/known-issues",
   "sponsorLink": "https://anubis.locker/sponsor/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ai-security-tool/web.git"
+    "url": "git+https://github.com/Anubis-Locker/anubis-web.git"
   },
   "author": {
     "name": "Anubis-Security-Tool contributors (based on electerm by ZHAO Xudong)",
-    "url": "https://github.com/ai-security-tool"
+    "url": "https://github.com/Anubis-Locker"
   },
   "bugs": {
-    "url": "https://github.com/ai-security-tool/web/issues"
+    "url": "https://github.com/Anubis-Locker/anubis-web/issues"
   },
   "homepage": "https://anubis.locker",
   "releases": "https://github.com/ai-security-tool/web/releases",
