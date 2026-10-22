@@ -1,0 +1,104 @@
+name: docker-publish
+
+# Builds the web image and pushes it to GHCR: ghcr.io/ai-security-tool/anubis-web
+# Trigger: tag vX.Y.Z (must equal package.json "version") or manual run.
+# Last job rolls the image out to our VPS over SSH (skipped if DEPLOY_HOST is not set).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/ai-security-tool/anubis-web
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Compute tag
+      id: meta
+      env:
+        REF_TYPE: ${{ github.ref_type }}
+        REF_NAME: ${{ github.ref_name }}
+      run: |
+        ver="$(node -p "require('./package.json').version")"
+        if [ "$REF_TYPE" = "tag" ]; then
+          if [ "$REF_NAME" != "v$ver" ]; then
+            echo "::error::tag $REF_NAME does not match package.json version $ver"; exit 1
+          fi
+          echo "tag=$ver" >> "$GITHUB_OUTPUT"
+          echo "latest=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "tag=dev-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+          echo "latest=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - uses: docker/setup-qemu-action@v3
+    - uses: docker/setup-buildx-action@v3
+    - uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: true
+        platforms: linux/amd64,linux/arm64
+        tags: |
+          ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
+          ${{ steps.meta.outputs.latest == 'true' && format('{0}:latest', env.IMAGE) || '' }}
+        labels: |
+          org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  publish-self-hosted:
+    needs: image
+    if: ${{ github.ref_type == 'tag' }}
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Roll out on the VPS (pinned host key)
+      env:
+        DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+        DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        GHCR_PULL_USER: ${{ secrets.GHCR_PULL_USER }}
+        GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+        TAG: ${{ needs.image.outputs.tag }}
+      run: |
+        if [ -z "$DEPLOY_HOST" ]; then
+          echo "::notice::DEPLOY_HOST is not set - image pushed, VPS rollout skipped"; exit 0
+        fi
+        for v in DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_PATH DEPLOY_KNOWN_HOSTS; do
+          if [ -z "${!v}" ]; then echo "::error::secret $v is not set"; exit 1; fi
+        done
+        case "$DEPLOY_PATH" in /*) ;; *) echo "::error::DEPLOY_PATH must be absolute"; exit 1 ;; esac
+        umask 077
+        d="$RUNNER_TEMP/ssh"; mkdir -p "$d"
+        printf '%s\n' "$DEPLOY_SSH_KEY" > "$d/key"
+        printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$d/known_hosts"
+        ssh_cmd=(ssh -p "${DEPLOY_PORT:-22}" -i "$d/key" -o IdentitiesOnly=yes -o BatchMode=yes
+                 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$d/known_hosts")
+        remote="$DEPLOY_USER@$DEPLOY_HOST"
+        # the VPS keeps docker-compose.yml + .env in DEPLOY_PATH; the pulled image is retagged as anubis-web:local
+        if [ -n "$GHCR_PULL_TOKEN" ]; then
+          printf '%s' "$GHCR_PULL_TOKEN" | "${ssh_cmd[@]}" "$remote" "docker login ghcr.io -u '$GHCR_PULL_USER' --password-stdin"
+        fi
+        "${ssh_cmd[@]}" "$remote" "set -e; cd '$DEPLOY_PATH'; docker pull '$IMAGE:$TAG'; docker tag '$IMAGE:$TAG' anubis-web:local; docker compose up -d --no-build; docker image prune -f"

@@ -1,0 +1,52 @@
+# Anubis-Security-Tool web + nginx
+#   cp .sample.env .env   # fill SERVER_SECRET / SERVER_PASS (compose fails without them)
+#   docker compose up -d --build
+# Then open http://127.0.0.1:8080 (put TLS in front for anything non-local).
+services:
+  web:
+    build: .
+    image: anubis-web:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: "5577"
+      NODE_ENV: production
+      DB_PATH: /data
+      TRUST_PROXY: "1"
+      ENABLE_AUTH: "${ENABLE_AUTH:-1}"
+      SERVER_SECRET: "${SERVER_SECRET:?set SERVER_SECRET in .env}"
+      SERVER_PASS: "${SERVER_PASS:?set SERVER_PASS in .env}"
+    volumes:
+      - anubis-data:/data
+    expose:
+      - "5577"
+    networks: [anubis]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/node:uid=1000,gid=1000
+    # MCP (widget, loopback in-container) is not published; to use it set
+    # MCP_TOKEN + MCP_ALLOW_REMOTE=1 and publish 127.0.0.1:30837 only.
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./examples/nginx-docker.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [anubis]
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  anubis: {}
+
+volumes:
+  anubis-data: {}

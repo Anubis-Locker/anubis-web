@@ -1,0 +1,35 @@
+// web-login.jsx, the part of the pre-login screen that is always needed: the
+// state we are in and the spinner for it. The screen itself - starfield, hero,
+// 3D wordmark, footer - lives in login-shell.jsx and is a lazy chunk, so an
+// instance with no password set (ENABLE_AUTH off) never loads it.
+//
+// Deliberately no background image/animation here: this shows for the length
+// of one auth request, and for the length of the shell chunk download.
+.login-loading
+  position fixed
+  inset 0
+  z-index 0
+  display flex
+  align-items center
+  justify-content center
+  background var(--main)
+
+// Last resort, if the scene chunk itself fails to load (a stale chunk after a
+// redeploy): the same form on a bare page, so the instance stays reachable.
+.login-plain
+  box-sizing border-box
+  position fixed
+  inset 0
+  z-index 0
+  display flex
+  flex-direction column
+  align-items center
+  justify-content center
+  padding 24px 16px
+  overflow-y auto
+  text-align center
+  background #fff
+  // the input row would otherwise shrink to its content in this flex column
+  > div
+    width 100%
+    max-width 480px
