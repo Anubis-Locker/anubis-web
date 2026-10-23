@@ -30,7 +30,8 @@
     "test-packaged-web": "node --test test/packaged/web-smoke.js",
     "test-managed-web": "node --test test/packaged/managed-web.js",
     "test-distribution": "node --test test/packaged/npm-distribution.js",
-    "stage-browser-assets": "node build/bin/browser-assets.js"
+    "stage-browser-assets": "node build/bin/browser-assets.js",
+    "stage-standalone": "node build/bin/standalone.js"
   },
   "license": "MIT",
   "languageRepo": "https://github.com/Anubis-Locker/anubis-locales",
@@ -167,6 +168,7 @@
     "src/app",
     "dist/assets",
     "dist/views",
+    "dist/asset-manifest.json",
     "scripts/configure-managed.js",
     "scripts/start-managed.js",
     "build/bin/install.js",

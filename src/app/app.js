@@ -3,8 +3,8 @@
  */
 
 import log from './common/log.js'
-import { createApp } from './server/server.js'
-import { packInfo } from './common/runtime-constants.js'
+import { packInfo, appRoot, assetVersion, isDev } from './common/runtime-constants.js'
+import { verifyProductionAssets } from './lib/production-assets.js'
 import { enforceSecurityConfig } from './lib/security.js'
 import { once } from 'node:events'
 import { managedConfig } from './lib/managed-config.js'
@@ -21,6 +21,10 @@ process.on('unhandledRejection', (err) => {
 async function main () {
   log.info('app start')
   enforceSecurityConfig(log)
+  if (!isDev) {
+    await verifyProductionAssets({ root: appRoot, version: assetVersion, views: process.env.VIEW_FOLDER })
+  }
+  const { createApp } = await import('./server/server.js')
   const managed = managedConfig()
   const managedLocalAuth = managed ? randomBytes(32).toString('hex') : undefined
   const app = await createApp({ managedLocalAuth })

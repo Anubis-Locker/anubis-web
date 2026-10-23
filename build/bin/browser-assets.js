@@ -1,38 +1,14 @@
-import { access, cp, mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises'
-import { resolve, join } from 'node:path'
+import { access, cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { createHash } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { promisify, parseArgs } from 'node:util'
 import { resolveBrandResDir } from '../../src/app/common/brand-res.js'
+import { treeManifest, treeHash } from '../../src/app/common/asset-manifest.js'
 
 const run = promisify(execFile)
 const rendererName = '@ai-security-tool/electerm-react'
 const registry = 'https://npm.anubis.locker/'
-
-async function treeManifest (directory, prefix = '') {
-  const result = {}
-  const entries = await readdir(directory, { withFileTypes: true })
-  entries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
-  for (const entry of entries) {
-    const relative = prefix + entry.name
-    const filename = join(directory, entry.name)
-    if (entry.isDirectory()) {
-      Object.assign(result, await treeManifest(filename, relative + '/'))
-    } else if (entry.isFile()) {
-      result[relative] = createHash('sha256').update(await readFile(filename)).digest('hex')
-    } else {
-      throw new Error(`Browser package inputs must be regular files: ${relative}`)
-    }
-  }
-  return result
-}
-
-function treeHash (files) {
-  return createHash('sha256')
-    .update(Object.entries(files).map(([name, hash]) => `${hash}  ${name}\n`).join(''))
-    .digest('hex')
-}
 
 export async function stageBrowserAssets ({
   root = process.cwd(),

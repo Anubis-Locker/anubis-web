@@ -191,6 +191,60 @@ enrolls a test installation into the public gateway. Set `ANUBIS_WEB_TARBALL`
 to an existing tarball's absolute path to verify that exact release artifact
 instead of packing a temporary candidate.
 
+### Isolated standalone restoration candidate
+
+Production startup and `anubis-web --check` validate the Pug template,
+version-matched entry bundles, worker, CSS, fonts, WASM, icons, and every asset's
+SHA-256 against `dist/asset-manifest.json`. A partial deployment exits with an
+actionable error before listening instead of returning a broken page. Normal
+`npm run build` propagates compilation/copy failures and writes that manifest.
+`--check` does not create a profile, open the database, or start a listener.
+
+To stage a reversible candidate without rebuilding or changing frozen browser
+assets, run `npm run stage-standalone`. It reads the matching
+`dist/browser-assets-package-<renderer-version>`; use
+`-- --browser-assets <installed-browser-assets-package>` for another verified
+copy. Each invocation creates a fresh `dist/standalone-candidate-<version>-*/package`
+containing the server, templates, complete assets, and provenance in `release.json`.
+The candidate is explicitly `private: true`, is not a new published runtime
+release, and contains no data, `.env`, credentials, or Windows `node_modules`.
+Its `npm-shrinkwrap.json` preserves dependency versions/integrities while routing
+registry tarball URLs exclusively through `https://npm.anubis.locker/`.
+
+From that candidate's `package` directory, use `npm pack --pack-destination ..`.
+Run the checkout's distribution test with `ANUBIS_WEB_TARBALL` set to the
+resulting absolute tarball path and `ANUBIS_WEB_EXPECT_PRIVATE=1`. This verifies
+an actual clean production install, missing-template/worker startup rejection,
+independent password login, shared UI and terminal, with a private test profile.
+
+For Linux deployment, extract the accepted tarball into a **new versioned release
+directory**, then run there:
+
+```sh
+npm ci --omit=dev --legacy-peer-deps --no-audit --no-fund --registry=https://npm.anubis.locker/
+ANUBIS_WEB_HOME=/path/to/existing-private-profile node npm/anubis-web.js --check
+```
+
+Use Node.js 24 or newer and install native build prerequisites if the host needs
+to compile `node-pty` or serial-port bindings. Never copy Windows `node_modules`.
+The production install hook skips source copying because this payload does not
+include `src/client`; it does not require the omitted development renderer.
+Preserve the existing profile, `.env`, absolute `DB_PATH`, custom configuration,
+service account, proxy/TLS configuration and login credentials. Do not run
+`--init` or generate replacement credentials to repair an existing installation.
+After a private-profile smoke test and a protected backup, the deployment owner
+can point the service at the new release's CLI with
+`ANUBIS_WEB_HOME` selecting the existing profile and `--standalone`. Keep the old
+code directory and service configuration for rollback; no data reset is needed.
+If an existing service supplies its credentials through its environment and has
+no profile `.env`, retain that environment and working directory and use the new
+release's absolute `src/app/app.js` entry with `NODE_ENV=production`,
+`ANUBIS_MANAGED_ACCESS=0`, and the existing absolute `DB_PATH`. Normal CLI startup
+initializes a missing profile; do not use it to regenerate settings for this
+restoration case. The direct production entry has the same readiness guard.
+Windows execution-context selection belongs to the managed Windows gateway,
+not to the standalone Linux server.
+
 `node --test test/packaged/managed-live.js` runs offline safety checks by default.
 For controlled production acceptance, set `ANUBIS_MANAGED_LIVE=1` and provide
 `ANUBIS_MANAGED_ADMIN_TOKEN` only in the Node test controller's environment.

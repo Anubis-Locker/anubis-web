@@ -5,16 +5,18 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { config } from 'dotenv'
 import { configureManagedInstallation, prepareManagedEnvironment } from '../scripts/configure-managed.js'
+import { verifyProductionAssets } from '../src/app/lib/production-assets.js'
 
 async function main () {
   const args = process.argv.slice(2)
-  if (args.some(arg => !['--help', '--version', '--standalone', '--init'].includes(arg))) {
+  if (args.some(arg => !['--help', '--version', '--standalone', '--init', '--check'].includes(arg))) {
     throw new Error('Unknown option; use anubis-web --help')
   }
   if (args.includes('--help')) {
-    console.log('Usage: anubis-web [--standalone] [--init] [--version]')
+    console.log('Usage: anubis-web [--standalone] [--init] [--check] [--version]')
     console.log('Managed access defaults to https://api.anubis.locker; first fingerprint approval is required.')
     console.log('ANUBIS_WEB_HOME selects private settings/data (default ~/.anubis-web). PORT overrides 5577.')
+    console.log('--check validates the production payload without creating settings/data or starting a server.')
     return
   }
   if (args.includes('--version')) {
@@ -23,6 +25,19 @@ async function main () {
     return
   }
   const directory = resolve(process.env.ANUBIS_WEB_HOME || resolve(homedir(), '.anubis-web'))
+  const loaded = config({ path: resolve(directory, '.env') })
+  if (loaded.error && loaded.error.code !== 'ENOENT') throw loaded.error
+  const root = fileURLToPath(new URL('../', import.meta.url))
+  const manifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
+  await verifyProductionAssets({
+    root,
+    version: manifest.devDependencies['@ai-security-tool/electerm-react'],
+    views: process.env.VIEW_FOLDER ? resolve(directory, process.env.VIEW_FOLDER) : undefined
+  })
+  if (args.includes('--check')) {
+    console.log(`Production Web payload ready; runtime ${manifest.version}, renderer ${manifest.devDependencies['@ai-security-tool/electerm-react']}`)
+    return
+  }
   await mkdir(directory, { recursive: true, mode: 0o700 })
   const standalone = args.includes('--standalone')
   await configureManagedInstallation({
