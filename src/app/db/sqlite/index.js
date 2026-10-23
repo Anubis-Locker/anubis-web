@@ -107,6 +107,12 @@ export async function dbAction (dbName, op, ...args) {
 export function createDb () {
   return {
     tables,
-    dbAction
+    dbAction,
+    close
   }
+}
+
+export function close () {
+  if (mainDb.isOpen) mainDb.close()
+  if (dataDb.isOpen) dataDb.close()
 }

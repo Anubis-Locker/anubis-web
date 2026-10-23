@@ -5,15 +5,14 @@
  *
  * Change the values below (or override domain/org/repo via env on the server)
  * instead of hard-coding URLs anywhere else.
- * NOTE: the ".locker" domain is not an IANA TLD; it needs private DNS or a
- * real domain later.
+ * Service endpoints use managed subdomains; the apex hosts the official site.
  */
 
 const env = (typeof process !== 'undefined' && process.env) || {}
 
 const domain = env.BRAND_DOMAIN || 'anubis.locker'
-const org = env.BRAND_GIT_ORG || 'ai-security-tool'
-const repo = env.BRAND_GIT_REPO || 'web'
+const org = env.BRAND_GIT_ORG || 'Anubis-Locker'
+const repo = env.BRAND_GIT_REPO || 'anubis-web'
 const gitHost = 'https://github.com'
 const repoUrl = `${gitHost}/${org}/${repo}`
 
@@ -45,7 +44,7 @@ export const brand = {
     privacy: `https://${domain}/privacy-policy/`,
     blog: `https://${domain}/blogs/`,
     videos: `https://${domain}/videos/`,
-    scripts: `https://${domain}/scripts`,
+    scripts: `https://download.${domain}/scripts`,
     debRepo: `https://repos.${domain}/deb`,
     rpmRepo: `https://repos.${domain}/rpm`,
     resource: `https://${domain}/static/images`,
@@ -62,7 +61,7 @@ export const brand = {
       wiki: `${repoUrl}/wiki`,
       docker: `${gitHost}/${org}/web-docker`,
       locales: `${gitHost}/${org}/locales`,
-      desktop: `${gitHost}/${org}/desktop`
+      desktop: `${gitHost}/${org}/anubis`
     }
   },
   ai: {

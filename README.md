@@ -8,17 +8,17 @@ Chinese: [README_cn.md](README_cn.md)
 
 ```bash
 # Linux / macOS (Node.js 24+, git, build tools)
-curl -fsSL https://raw.githubusercontent.com/ai-security-tool/web/main/scripts/one-line-web.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Anubis-Locker/anubis-web/main/scripts/one-line-web.sh | bash
 # Windows
 # download scripts\one-line-web.bat and run it
 ```
 
-The script clones `ANUBIS_REPO_URL` (default `https://github.com/ai-security-tool/web.git`, a placeholder), builds, and creates `.env` with generated `SERVER_SECRET` / `SERVER_PASS`. Start with `./run-electerm-web.sh` and open http://127.0.0.1:5577.
+The script clones `ANUBIS_REPO_URL` (default `https://github.com/Anubis-Locker/anubis-web.git`), builds, and creates `.env` with generated `SERVER_SECRET` / `SERVER_PASS`. Start with `./run-electerm-web.sh` and open http://127.0.0.1:5577.
 
 Manual:
 
 ```bash
-git clone https://github.com/ai-security-tool/web.git && cd web
+git clone https://github.com/Anubis-Locker/anubis-web.git && cd anubis-web
 cp .sample.env .env        # set SERVER_SECRET and SERVER_PASS
 npm config set legacy-peer-deps true
 npm i && npm run build
@@ -61,6 +61,23 @@ Windows: `%APPDATA%\electerm`). Docker: mount the copy on the `anubis-data` volu
 Logos/icons come from the resource package, found at `BRAND_RES_DIR` (relative to this repo or
 absolute), else `../resource`, else `node_modules/@ai-security-tool/resource`. The same folder is
 used by the vite dev server, the `@brand-res` alias and `build/bin/copy.js`.
+
+## Shared UI and local verification
+
+Desktop and web use the same client sources, published as
+`@ai-security-tool/electerm-react`. This wrapper pins version `5.6.11` and
+includes its Lucide icon dependency. Automatic sync is enabled by default
+against `https://sync.anubis.locker/api/sync`; account credentials are still
+required before data is uploaded.
+
+After building, run `npm run test3` and `npm run test-packaged-web`.
+The browser check needs `npx playwright install chromium`; it starts only
+a temporary loopback server, checks rejected and successful login, the shared
+248 px navigation, settings and actual terminal command output, and removes its
+own database. It never connects to or deploys the public demo.
+Database tests use their own configuration directories and close SQLite handles
+before cleanup, including on Windows.
+
 ## Notes
 
 - all dependencies resolve to the `@ai-security-tool/*` scope (set `NPM_REGISTRY_URL`, see `.npmrc`).

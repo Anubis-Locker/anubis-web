@@ -167,11 +167,15 @@ export async function dbAction (dbName, op, ...args) {
 }
 `
 
-// config.js is restored after all tests finished, see after() below
-const configPath = resolve(process.cwd(), 'config.js')
-const configExisted = fs.existsSync(configPath)
-const configBackup = configExisted ? fs.readFileSync(configPath, 'utf8') : null
+const originalCwd = process.cwd()
+const configPath = resolve(tmpDir, 'config.js')
+fs.writeFileSync(resolve(tmpDir, 'package.json'), JSON.stringify({ type: 'module' }))
 fs.writeFileSync(configPath, customConfigSrc)
+process.chdir(tmpDir)
+after(() => {
+  process.chdir(originalCwd)
+  fs.rmSync(tmpDir, { recursive: true, force: true })
+})
 
 const { dbAction, getDb, loadDb } = await import('../../src/app/db/index.js')
 
@@ -183,15 +187,6 @@ assert.equal(typeof cachedDb.dbAction, 'function')
 const modulePath = resolve(tmpDir, 'my-db.js')
 fs.writeFileSync(modulePath, customModuleSrc)
 const moduleDb = await loadDb({ db: { type: 'custom', module: modulePath } }, 'custom')
-
-after(() => {
-  if (configExisted) {
-    fs.writeFileSync(configPath, configBackup)
-  } else {
-    fs.rmSync(configPath, { force: true })
-  }
-  fs.rmSync(tmpDir, { recursive: true, force: true })
-})
 
 // full path: config.js custom Db -> entry point dbAction
 testDbContract(dbAction, 'bookmarks', 'custom config file db')
@@ -232,6 +227,7 @@ test('custom: env DB_TYPE=sqlite overrides custom config', async () => {
   const db = await loadDb({ db: { type: 'custom', Db: MemoryDb } }, 'sqlite')
   assert.ok(Array.isArray(db.tables))
   assert.ok(db.tables.includes('bookmarks'))
+  db.close()
 })
 
 test('custom: DB_TYPE unset uses custom Db from config', async () => {

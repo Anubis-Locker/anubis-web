@@ -2,6 +2,7 @@ import {
   cwd
 } from '../common/runtime-constants.js'
 import log from '../common/log.js'
+import { pathToFileURL } from 'node:url'
 import {
   resolve
 } from 'path'
@@ -13,7 +14,7 @@ export async function getConf () {
     return glob.conf
   }
   const conf = await import(
-    resolve(cwd, 'config.js')
+    pathToFileURL(resolve(cwd, 'config.js')).href
   ).catch(err => {
     if (err.code === 'ERR_MODULE_NOT_FOUND') {
       return

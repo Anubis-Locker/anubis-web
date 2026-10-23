@@ -1,4 +1,5 @@
 import defaultSettings from './default-setting.js'
+import brand from './brand.config.js'
 
 export default {
   keepaliveInterval: 10000,
@@ -21,9 +22,10 @@ export default {
   language: 'en_us',
   syncSetting: {
     lastUpdateTime: Date.now(),
-    autoSync: false,
+    autoSync: true,
     autoSyncInterval: 0,
-    autoSyncDirection: 'upload'
+    autoSyncDirection: 'upload',
+    cloudApiUrl: `${brand.urls.sync}/api/sync`
   },
   terminalTypes: [
     'xterm-256color',

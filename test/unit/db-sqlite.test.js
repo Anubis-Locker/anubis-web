@@ -12,7 +12,9 @@ process.env.DB_TYPE = 'sqlite'
 
 const { dbAction, getTables, loadDb } = await import('../../src/app/db/index.js')
 
-after(() => {
+after(async () => {
+  const db = await loadDb({})
+  db.close()
   fs.rmSync(tmpDbDir, { recursive: true, force: true })
 })
 
