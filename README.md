@@ -146,6 +146,10 @@ includes its Lucide icon dependency. Automatic sync is enabled by default
 against `https://sync.anubis.locker/api/sync`; account credentials are still
 required before data is uploaded.
 
+The separate browser-assets release pipeline now consumes the exact shared
+renderer pin `5.7.2`, including its published browser-safe shared modules. This
+does not republish or deploy the frozen `anubis-web@5.6.12` runtime.
+
 After building, run `npm run test3` and `npm run test-packaged-web`.
 The browser check needs `npx playwright install chromium`; it starts only
 a temporary loopback server, checks rejected and successful login, the shared
@@ -156,11 +160,24 @@ Database tests use their own configuration directories and close SQLite handles
 before cleanup, including on Windows.
 
 After a production build, `npm run stage-browser-assets` prepares
-`dist/browser-assets-package` for `npm pack --ignore-scripts`. This creates the
+`dist/browser-assets-package-<renderer-version>` for `npm pack --ignore-scripts`.
+It refuses to overwrite an existing version's staging directory. This creates the
 version-matched `@ai-security-tool/anubis-browser-assets` package for the desktop
-browser adapter, containing only renderer assets and licensing, not a server or
+browser adapter, containing only renderer assets, licensing and provenance, not a server or
 database. The desktop resolves its `package.json` and serves the adjacent `assets`
 directory, avoiding runtime dependencies on a sibling source checkout.
+
+For an isolated release build, use `npm run stage-browser-assets -- --build
+--source-commit <full-renderer-source-commit>`. Compilation uses a fresh versioned
+output directory without modifying `dist/assets` or prior packages. The installed
+renderer, copied build sources, manifest pin, and own-registry lock integrity must
+agree. The source install hook also copies published browser-safe `app/common`
+modules alongside the client, preserving their relative imports without a
+sibling checkout or version-specific aliases. These shared sources are checked
+against the installed package before compilation.
+`source.json` records both source trees and the SHA-256 manifest of
+every asset, including fonts, WASM, images and icons. Pack and publish only from
+the resulting package directory, explicitly using `--registry=https://npm.anubis.locker/`.
 
 `npm pack` checks and includes the backend, production views/assets, and
 cross-platform `anubis-web` CLI, but not private data, `.env`, or source-only

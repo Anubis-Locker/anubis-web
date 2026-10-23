@@ -105,6 +105,7 @@ dist
 .tern-port
 
 # custom
+/src/client/app/common/
 /temp/
 /dist/
 /work/

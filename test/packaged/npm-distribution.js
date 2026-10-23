@@ -54,7 +54,7 @@ test('own-registry installed Web tarball CLI starts outside checkout and authent
   await access(join(prefix, 'node_modules', '.bin', process.platform === 'win32' ? 'anubis-web.cmd' : 'anubis-web'))
   const runtime = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'))
   assert.equal(runtime.version, '5.6.12')
-  assert.equal(runtime.devDependencies['@ai-security-tool/electerm-react'], '5.6.11')
+  assert.equal(runtime.devDependencies['@ai-security-tool/electerm-react'], manifest.devDependencies['@ai-security-tool/electerm-react'])
   await assert.rejects(access(join(packageRoot, 'src', 'client')))
   await assert.rejects(access(join(packageRoot, '.env')))
   await assert.rejects(access(join(packageRoot, 'data')))
@@ -114,7 +114,9 @@ test('own-registry installed Web tarball CLI starts outside checkout and authent
   browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   await page.goto(url)
-  assert.deepEqual(await page.evaluate(() => [window.et.packInfo.version, window.et.version]), ['5.6.12', '5.6.11'])
+  assert.deepEqual(await page.evaluate(() => [window.et.packInfo.version, window.et.version]), [
+    manifest.version, manifest.devDependencies['@ai-security-tool/electerm-react']
+  ])
   await page.locator('input[type="password"]').fill(configured.SERVER_PASS)
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForFunction(() => window.store?.configLoaded)
