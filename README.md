@@ -140,15 +140,19 @@ used by the vite dev server, the `@brand-res` alias and `build/bin/copy.js`.
 ## Shared UI and local verification
 
 Desktop and web use the same client sources, published as
-`@ai-security-tool/electerm-react`. Web runtime `5.6.12` keeps renderer and
+`@ai-security-tool/electerm-react`. The previously published Web runtime `5.6.12` keeps renderer and
 browser-asset URLs pinned to `5.6.11` and
 includes its Lucide icon dependency. Automatic sync is enabled by default
 against `https://sync.anubis.locker/api/sync`; account credentials are still
 required before data is uploaded.
 
-The separate browser-assets release pipeline now consumes the exact shared
-renderer pin `5.7.2`, including its published browser-safe shared modules. This
-does not republish or deploy the frozen `anubis-web@5.6.12` runtime.
+Current source/runtime candidates and the separate browser-assets release
+pipeline use version `5.7.3`, the exact published shared renderer `5.7.3`, and
+managed SDK `1.0.3`. The renderer includes its published browser-safe shared
+modules and distinguishes native embedded websites from ordinary browser iframe
+sessions. These source changes do not republish the frozen `anubis-web@5.6.12`
+runtime or deploy a running service. Standalone candidates remain private until
+a separate runtime publication decision.
 
 After building, run `npm run test3` and `npm run test-packaged-web`.
 The browser check needs `npx playwright install chromium`; it starts only
@@ -216,6 +220,10 @@ Run the checkout's distribution test with `ANUBIS_WEB_TARBALL` set to the
 resulting absolute tarball path and `ANUBIS_WEB_EXPECT_PRIVATE=1`. This verifies
 an actual clean production install, missing-template/worker startup rejection,
 independent password login, shared UI and terminal, with a private test profile.
+For `npm run test-managed-web`, `ANUBIS_WEB_APP_ROOT` may select an extracted
+candidate after its production dependencies are installed. The local gateway
+fixture then verifies that complete runtime and its renderer without replacing
+the checkout's older assets or contacting a production gateway.
 
 For Linux deployment, extract the accepted tarball into a **new versioned release
 directory**, then run there:

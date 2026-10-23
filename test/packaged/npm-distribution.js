@@ -23,6 +23,7 @@ test('own-registry installed Web tarball CLI starts outside checkout and authent
   let server = null
   let browser = null
   let unavailableGateway = null
+  let website = null
   t.after(async () => {
     await browser?.close()
     if (server && server.exitCode === null) {
@@ -33,6 +34,10 @@ test('own-registry installed Web tarball CLI starts outside checkout and authent
     if (unavailableGateway) {
       unavailableGateway.closeAllConnections()
       await new Promise(resolve => unavailableGateway.close(resolve))
+    }
+    if (website) {
+      website.closeAllConnections()
+      await new Promise(resolve => website.close(resolve))
     }
     await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 })
   })
@@ -208,6 +213,26 @@ test('own-registry installed Web tarball CLI starts outside checkout and authent
   await page.keyboard.press('Enter')
   await page.waitForFunction(() =>
     document.querySelector('.session-current .xterm-rows')?.innerText.includes('ANUBIS_NPM_TERMINAL_OK'))
+  if (process.env.ANUBIS_WEB_EXPECT_PRIVATE === '1') {
+    await t.test('ordinary Web website sessions use the honest iframe fallback, never native webview', async () => {
+      website = http.createServer((req, res) => {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+        res.end('<!doctype html><html><body><h1>Owned website fixture</h1></body></html>')
+      })
+      website.listen(0, '127.0.0.1')
+      await once(website, 'listening')
+      const websiteUrl = `http://127.0.0.1:${website.address().port}/`
+      await page.evaluate(url => window.store.addTab({
+        type: 'web', url, title: 'Owned website fixture'
+      }), websiteUrl)
+      const frame = page.frameLocator('.session-current iframe')
+      await frame.locator('h1').waitFor({ state: 'visible' })
+      assert.equal(await frame.locator('h1').textContent(), 'Owned website fixture')
+      assert.match(await page.locator('.session-current [role="note"]').textContent(), /websites block embedding/)
+      assert.equal(await page.locator('.session-current webview').count(), 0)
+      assert.equal(await page.evaluate(() => window.anubisWebsite?.embedded === true), false)
+    })
+  }
   await assert.rejects(access(join(home, 'data', 'managed-installation.json')), { code: 'ENOENT' })
   assert.doesNotMatch(output, /\[managed\]/)
   assert.deepEqual(errors, [])

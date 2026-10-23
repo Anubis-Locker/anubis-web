@@ -8,11 +8,14 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { randomBytes, createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright'
 import { startManagedAccess } from '../../src/app/lib/managed-access.js'
 
 const require = createRequire(import.meta.url)
+const appRoot = process.env.ANUBIS_WEB_APP_ROOT || fileURLToPath(new URL('../../', import.meta.url))
+const appModule = (...parts) => import(pathToFileURL(join(appRoot, 'src', 'app', ...parts)).href)
 
 async function waitFor (predicate) {
   const deadline = Date.now() + 10000
@@ -82,7 +85,7 @@ test('published gateway requires approval and operator session before independen
       local.closeAllConnections()
       await new Promise(resolve => local.close(resolve))
     }
-    const { loadDb } = await import('../../src/app/db/index.js')
+    const { loadDb } = await appModule('db', 'index.js')
     const db = await loadDb({})
     db.close()
     for (const key of Object.keys(process.env)) {
@@ -91,7 +94,7 @@ test('published gateway requires approval and operator session before independen
     Object.assign(process.env, previous)
     await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 })
   })
-  const { createApp } = await import('../../src/app/server/server.js')
+  const { createApp } = await appModule('server', 'server.js')
   const app = await createApp({ managedLocalAuth })
   local = app.listen(0, '127.0.0.1')
   local.on('connection', socket => {
@@ -111,7 +114,7 @@ test('published gateway requires approval and operator session before independen
       ANUBIS_MANAGED_URL: 'https://api.example.test',
       ANUBIS_INSTALLATION_FILE: identityFile
     },
-    version: '5.6.11',
+    version: JSON.parse(await readFile(join(appRoot, 'package.json'), 'utf8')).version,
     localAuth: managedLocalAuth,
     createAgent: options => {
       agent = createAgent({ ...options, baseUrl: base, heartbeatMs: 1000, reconnectMs: 100 })
@@ -274,7 +277,7 @@ test('published gateway requires approval and operator session before independen
       document.querySelector('.session-current .xterm-rows')?.innerText.includes('ANUBIS_GATEWAY_TERMINAL_OK'))
 
     await browserTest.test('managed MCP initializes, lists and calls real tools, and streams SSE without exporting local credentials', async () => {
-      const { runWidget, stopWidget } = await import('../../src/app/widgets/load-widget.js')
+      const { runWidget, stopWidget } = await appModule('widgets', 'load-widget.js')
       stopMcp = stopWidget
       const probe = net.createServer()
       probe.listen(0, '127.0.0.1')

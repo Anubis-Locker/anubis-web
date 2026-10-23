@@ -1,6 +1,6 @@
 {
   "name": "anubis-web",
-  "version": "5.6.12",
+  "version": "5.7.3",
   "description": "Anubis-Security-Tool: unified terminal, SSH, SFTP, RDP, VNC, Spice, MCP and batch workflows.",
   "main": "src/app/app.js",
   "type": "module",
@@ -59,7 +59,7 @@
     "registry": "https://npm.anubis.locker/"
   },
   "devDependencies": {
-    "@ai-security-tool/electerm-react": "5.7.2",
+    "@ai-security-tool/electerm-react": "5.7.3",
     "@ai-security-tool/icons": "1.0.1",
     "@ai-security-tool/resource": "2.2.1",
     "@ant-design/icons": "^6.2.5",
@@ -104,7 +104,7 @@
   "dependencies": {
     "@ai-security-tool/ftp-srv": "^1.0.6",
     "@ai-security-tool/locales": "2.3.34",
-    "@ai-security-tool/managed-access": "1.0.1",
+    "@ai-security-tool/managed-access": "1.0.3",
     "@ai-security-tool/ssh2": "1.22.1",
     "@ai-security-tool/ssh2-scp": "3.3.0",
     "@ai-security-tool/sync": "2.1.0",
