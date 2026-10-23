@@ -8,6 +8,7 @@ import { spawn } from 'node:child_process'
 import net from 'node:net'
 import { setTimeout as delay } from 'node:timers/promises'
 import { once } from 'node:events'
+import { createRequire } from 'node:module'
 import { chromium } from 'playwright'
 
 test('locally built web application authenticates, renders shared UI and executes a terminal command', { timeout: 90000 }, async t => {
@@ -37,8 +38,10 @@ test('locally built web application authenticates, renders shared UI and execute
     stream.on('data', chunk => { output += chunk })
   }
   let browser = null
+  let vnc = null
   t.after(async () => {
     if (browser) await browser.close()
+    if (vnc) await vnc.close()
     if (server.exitCode === null) {
       const exited = once(server, 'exit')
       server.kill()
@@ -92,6 +95,81 @@ test('locally built web application authenticates, renders shared UI and execute
   await page.keyboard.insertText('node -p "\'ANUBIS_\'+\'WEB_TERMINAL_OK\'"')
   await page.keyboard.press('Enter')
   await page.waitForFunction(() => document.body.innerText.includes('ANUBIS_WEB_TERMINAL_OK'))
+  await t.test('authenticated MCP initialization and tool calls reach the actual browser store', async () => {
+    const token = randomBytes(32).toString('hex')
+    const listener = net.createServer()
+    listener.listen(0, '127.0.0.1')
+    await once(listener, 'listening')
+    const mcpPort = listener.address().port
+    await new Promise(resolve => listener.close(resolve))
+    const instance = await page.evaluate(config => window.store.runWidget('mcp-server', config), {
+      host: '127.0.0.1',
+      port: mcpPort,
+      apiKey: token
+    })
+    assert.ok(instance.instanceId)
+    try {
+      const call = (body, extra = {}) => fetch(instance.serverInfo.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json, text/event-stream',
+          Authorization: `Bearer ${token}`,
+          ...extra
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(15000)
+      })
+      const initialize = {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'web-smoke', version: '1' } }
+      }
+      const denied = await call(initialize, { Authorization: '' })
+      assert.equal(denied.status, 401)
+      const response = await call(initialize)
+      assert.equal(response.status, 200)
+      assert.match(await response.text(), /"protocolVersion"/)
+      const sessionId = response.headers.get('mcp-session-id')
+      assert.ok(sessionId)
+      const notification = await call({ jsonrpc: '2.0', method: 'notifications/initialized' }, { 'mcp-session-id': sessionId })
+      assert.equal(notification.status, 202)
+      const result = await call({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tools/call',
+        params: { name: 'list_electerm_tabs', arguments: {} }
+      }, { 'mcp-session-id': sessionId })
+      assert.equal(result.status, 200)
+      assert.match(await result.text(), /Web terminal smoke/)
+    } finally {
+      await page.evaluate(id => window.store.stopWidget(id), instance.instanceId)
+    }
+  })
+  await t.test('VNC browser framebuffer, keyboard and pointer work through the authenticated wrapper', {
+    skip: !process.env.ANUBIS_VNC_FIXTURE_MODULE
+  }, async () => {
+    const { startTestVncServer } = createRequire(import.meta.url)(process.env.ANUBIS_VNC_FIXTURE_MODULE)
+    vnc = await startTestVncServer()
+    await page.evaluate(port => window.store.addTab({
+      type: 'vnc', host: '127.0.0.1', port, title: 'Web VNC fixture', scaleViewport: false, viewOnly: false
+    }), vnc.port)
+    await page.waitForFunction(() => {
+      const canvas = document.querySelector('.session-current canvas')
+      if (!canvas || canvas.width !== 64 || canvas.height !== 48) return false
+      const pixel = canvas.getContext('2d').getImageData(10, 10, 1, 1).data
+      return pixel[0] === 0 && pixel[1] === 255 && pixel[2] === 0
+    })
+    await page.locator('.session-current canvas').click({ position: { x: 10, y: 10 } })
+    await page.keyboard.press('a')
+    for (let attempt = 0; attempt < 50 && !vnc.events.keys.some(event => event.down && event.key === 97); attempt++) {
+      await delay(100)
+    }
+    assert.ok(vnc.events.keys.some(event => event.down && event.key === 97))
+    assert.ok(vnc.events.pointers.some(event => event.buttons === 1))
+    assert.deepEqual(vnc.errors, [])
+  })
   assert.deepEqual(errors, [])
   assert.doesNotMatch(output, /\berror [›>]|uncaughtException|unhandledRejection/)
 })

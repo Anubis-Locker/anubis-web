@@ -73,10 +73,17 @@ required before data is uploaded.
 After building, run `npm run test3` and `npm run test-packaged-web`.
 The browser check needs `npx playwright install chromium`; it starts only
 a temporary loopback server, checks rejected and successful login, the shared
-248 px navigation, settings and actual terminal command output, and removes its
-own database. It never connects to or deploys the public demo.
+248 px navigation, settings, actual terminal command output, authenticated MCP
+initialization and an MCP tool call into the browser store. It removes its own
+database and never connects to or deploys the public demo.
 Database tests use their own configuration directories and close SQLite handles
 before cleanup, including on Windows.
+
+For the controlled VNC framebuffer/keyboard/pointer check, also set
+`ANUBIS_VNC_FIXTURE_MODULE` to the absolute path of
+`app/src/test/integration/lib/vnc-test-server.js` in the combined source workspace
+before running the browser check. Without an explicit fixture module, that
+external-protocol check is reported as skipped, not passed.
 
 ## Notes
 
