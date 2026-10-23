@@ -91,6 +91,10 @@ test('locally built web application authenticates, renders shared UI and execute
   await page.locator('.close-setting-wrap:visible').first().click()
   await page.evaluate(() => window.store.addTab({ type: 'local', title: 'Web terminal smoke', pane: 'terminal' }))
   await page.locator('.session-current .xterm-helper-textarea').waitFor()
+  await page.waitForFunction(platform => {
+    const output = document.querySelector('.session-current .xterm-rows')?.innerText || ''
+    return platform === 'win32' ? /PS [^\r\n]*>/.test(output) : /[%$#] /.test(output)
+  }, process.platform)
   await page.locator('.session-current .xterm-helper-textarea').focus()
   await page.keyboard.insertText('node -p "\'ANUBIS_\'+\'WEB_TERMINAL_OK\'"')
   await page.keyboard.press('Enter')
