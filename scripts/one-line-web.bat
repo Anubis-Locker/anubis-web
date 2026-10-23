@@ -1,12 +1,12 @@
 @echo off
 rem One-line installer for Anubis-Security-Tool web (build from source, Windows).
 rem Optional env vars:
-rem   ANUBIS_REPO_URL  git url (default https://github.com/ai-security-tool/web.git - placeholder)
+rem   ANUBIS_REPO_URL  git url (default https://github.com/Anubis-Locker/anubis-web.git)
 rem   ANUBIS_REF       branch/tag (default: repo default branch)
 rem   ANUBIS_DIR       target dir (default anubis-web)
 setlocal EnableExtensions
 
-if not defined ANUBIS_REPO_URL set "ANUBIS_REPO_URL=https://github.com/ai-security-tool/web.git"
+if not defined ANUBIS_REPO_URL set "ANUBIS_REPO_URL=https://github.com/Anubis-Locker/anubis-web.git"
 if not defined ANUBIS_DIR set "ANUBIS_DIR=anubis-web"
 
 where git >nul 2>&1 || (echo [anubis] ERROR: git is required. & exit /b 1)

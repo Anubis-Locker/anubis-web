@@ -2,12 +2,12 @@
 # One-line installer for Anubis-Security-Tool web (build from source).
 #   curl -fsSL <your-host>/scripts/one-line-web.sh | bash
 # Override with env vars:
-#   ANUBIS_REPO_URL  git url   (default: https://github.com/ai-security-tool/web.git - placeholder)
+#   ANUBIS_REPO_URL  git url   (default: https://github.com/Anubis-Locker/anubis-web.git)
 #   ANUBIS_REF       branch/tag to checkout (default: repo default branch)
 #   ANUBIS_DIR       target dir (default: ./anubis-web)
 set -Eeuo pipefail
 
-REPO_URL="${ANUBIS_REPO_URL:-https://github.com/ai-security-tool/web.git}"
+REPO_URL="${ANUBIS_REPO_URL:-https://github.com/Anubis-Locker/anubis-web.git}"
 REF="${ANUBIS_REF:-}"
 TARGET_DIR="${ANUBIS_DIR:-anubis-web}"
 MIN_NODE_MAJOR=24
