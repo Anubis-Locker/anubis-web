@@ -117,6 +117,11 @@ honestly returns `503`, not a fabricated connection. `MCP_ENABLED=false` disable
 the managed adapter with `404`; the existing standalone/local MCP widget is
 unchanged. Gateway-issued MCP grants are separate from both local MCP credentials
 and Web login tokens.
+Start the widget from the authenticated browser session that will serve its
+renderer tools, and keep that session connected. Normal authorized widget
+management returns its local API key to that Web UI; this is distinct from
+enrollment or gateway-issued grants. The gateway terminates TLS and is a trusted
+proxy, not end-to-end encryption against its operator.
 
 ## Data and legacy electerm data
 
@@ -168,6 +173,17 @@ startup check uses only a deliberately unavailable local fixture, so neither
 enrolls a test installation into the public gateway. Set `ANUBIS_WEB_TARBALL`
 to an existing tarball's absolute path to verify that exact release artifact
 instead of packing a temporary candidate.
+
+`node --test test/packaged/managed-live.js` runs offline safety checks by default.
+For controlled production acceptance, set `ANUBIS_MANAGED_LIVE=1` and provide
+`ANUBIS_MANAGED_ADMIN_TOKEN` only in the Node test controller's environment.
+This opt-in test installs the published package outside the checkout, verifies
+its fresh local fingerprint before approval, and exercises the actual HTTPS
+admin UI, independent Web login, terminal, MCP tools and active-stream
+revocation. It passes no controller credential to the installed application,
+revokes only its guarded test identity, and removes its temporary processes and
+profile. Failed revocation preserves the profile and reports its exact identity
+instead of discarding ownership evidence.
 
 For the controlled VNC framebuffer/keyboard/pointer check, also set
 `ANUBIS_VNC_FIXTURE_MODULE` to the absolute path of
