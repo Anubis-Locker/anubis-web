@@ -6,6 +6,25 @@ Chinese: [README_cn.md](README_cn.md)
 
 ## Quick start
 
+Install the independent Web runtime **only from the Anubis registry**:
+
+```bash
+npm install --global anubis-web@5.6.12 --registry=https://npm.anubis.locker/
+anubis-web
+```
+
+The CLI starts production mode with managed access to `https://api.anubis.locker`
+by default. It creates unique Web login credentials in a private
+`~/.anubis-web/.env`; `ANUBIS_WEB_HOME` selects another installation directory.
+Read that file locally for the Web password. First gateway fingerprint approval
+and a separate gateway browser login are required; enrollment is not approval.
+`anubis-web --standalone` explicitly disables managed enrollment for that run,
+and `anubis-web --init` only initializes configuration without starting a server.
+Updating the package does not overwrite existing settings, credentials or data.
+Do not install the similarly named package from the public npm registry.
+
+Or build from source:
+
 ```bash
 # Linux / macOS (Node.js 24+, git, build tools)
 curl -fsSL https://raw.githubusercontent.com/Anubis-Locker/anubis-web/main/scripts/one-line-web.sh | bash
@@ -13,16 +32,16 @@ curl -fsSL https://raw.githubusercontent.com/Anubis-Locker/anubis-web/main/scrip
 # download scripts\one-line-web.bat and run it
 ```
 
-The script clones `ANUBIS_REPO_URL` (default `https://github.com/Anubis-Locker/anubis-web.git`), builds, and creates `.env` with generated `SERVER_SECRET` / `SERVER_PASS`. Start with `./run-electerm-web.sh` and open http://127.0.0.1:5577.
+The script clones `ANUBIS_REPO_URL` (default `https://github.com/Anubis-Locker/anubis-web.git`), builds, and creates a private `.env` with generated `SERVER_SECRET` / `SERVER_PASS` and the managed gateway configured. Start with `npm run managed` and open http://127.0.0.1:5577 locally, or use the gateway after approval. Set `ANUBIS_MANAGED_ACCESS=0` before installation for an explicit standalone install. Existing `.env` files are preserved on updates; `npm run managed` supplies the gateway default unless that opt-out is set.
 
 Manual:
 
 ```bash
 git clone https://github.com/Anubis-Locker/anubis-web.git && cd anubis-web
-cp .sample.env .env        # set SERVER_SECRET and SERVER_PASS
-npm config set legacy-peer-deps true
-npm i && npm run build
-npm run prod
+npm install --legacy-peer-deps --registry=https://npm.anubis.locker/
+npm run setup-managed     # generates strong credentials; preserves an existing .env
+npm run build
+npm run managed
 ```
 
 ## Docker
@@ -48,6 +67,57 @@ Container runs as non-root, read-only rootfs, all caps dropped, data in the `anu
 
 See `.sample.env` for all variables. Run behind HTTPS; the app can open shells and read/write files for any authenticated user, so treat credentials like root access.
 
+## Managed external access
+
+The npm CLI, one-line installers, and `npm run managed` default to
+`https://api.anubis.locker`. Ordinary source development and `npm run prod`
+retain their existing opt-in behavior. To enroll an existing production-built
+standalone installation, run `npm run managed` or explicitly set
+`ANUBIS_MANAGED_URL=https://api.anubis.locker`, and optionally
+`ANUBIS_INSTALLATION_LABEL` (default `Anubis Web`). Keep `HOST=127.0.0.1`,
+authentication enabled, a strong `SERVER_SECRET`, and a unique `SERVER_PASS`
+of at least 16 characters. Leave `SERVER` and `CDN` unset so browser requests
+stay on the installation's authenticated gateway origin. Development/Vite mode
+is not exposed by this integration; build first and run with `NODE_ENV=production`.
+
+The shared managed-access client persists a unique installation ID and secret
+in `ANUBIS_INSTALLATION_FILE` (default `DB_PATH/managed-installation.json`,
+or `./data/managed-installation.json`). Preserve this private file across
+restarts, restrict its filesystem permissions, and never copy it to a second
+installation or include it in a public backup. No administrator token is embedded
+or required. An administrator must approve the first enrollment's fingerprint;
+pending or revoked installations are not remotely accessible.
+The process prints its installation ID, fingerprint, and connection status to
+stdout in production too; verify that fingerprint before approval. The private
+installation secret is never printed.
+
+After approval, the client maintains an outbound authenticated tunnel, reconnects
+after network loss, and reports availability only while the local HTTP listener is
+healthy. The gateway authenticates browser operators separately, and the normal
+Web password/JWT login still applies. Registration alone does not mean the
+installation is online, and enrollment never uploads SSH/VNC/MCP credentials
+or the machine's username. Set `ANUBIS_MANAGED_ACCESS=0` for the managed runner
+or use `anubis-web --standalone` to opt out explicitly. For the ordinary
+standalone source runner, unset `ANUBIS_MANAGED_URL`.
+The existing data-sync configuration is independent of this transport.
+
+Run `npm run test-managed-web` for an isolated real-client channel check against
+a temporary local gateway fixture. It verifies Web JWT enforcement and a
+WebSocket upgrade through the reverse transport without contacting a public
+gateway. It also checks persisted installation identity and enrollment metadata.
+
+Managed `/mcp` access is a separate, exact HTTP/SSE route, not a Web login bypass.
+It requires authenticated gateway access and the tunnel client's private
+per-process header; arbitrary headers or a Web JWT cannot unlock it directly.
+The adapter uses the existing MCP widget's bearer token only on fixed loopback,
+never returns or enrolls that token, and does not expose other upstream paths.
+An administrator must configure/start the authenticated MCP widget with its
+normal renderer connection and policy first; a fresh or stopped MCP widget
+honestly returns `503`, not a fabricated connection. `MCP_ENABLED=false` disables
+the managed adapter with `404`; the existing standalone/local MCP widget is
+unchanged. Gateway-issued MCP grants are separate from both local MCP credentials
+and Web login tokens.
+
 ## Data and legacy electerm data
 
 Data lives in `DB_PATH` (default `./data`). The web app never moves data automatically: to reuse
@@ -65,7 +135,8 @@ used by the vite dev server, the `@brand-res` alias and `build/bin/copy.js`.
 ## Shared UI and local verification
 
 Desktop and web use the same client sources, published as
-`@ai-security-tool/electerm-react`. This wrapper pins version `5.6.11` and
+`@ai-security-tool/electerm-react`. Web runtime `5.6.12` keeps renderer and
+browser-asset URLs pinned to `5.6.11` and
 includes its Lucide icon dependency. Automatic sync is enabled by default
 against `https://sync.anubis.locker/api/sync`; account credentials are still
 required before data is uploaded.
@@ -79,6 +150,25 @@ database and never connects to or deploys the public demo.
 Database tests use their own configuration directories and close SQLite handles
 before cleanup, including on Windows.
 
+After a production build, `npm run stage-browser-assets` prepares
+`dist/browser-assets-package` for `npm pack --ignore-scripts`. This creates the
+version-matched `@ai-security-tool/anubis-browser-assets` package for the desktop
+browser adapter, containing only renderer assets and licensing, not a server or
+database. The desktop resolves its `package.json` and serves the adjacent `assets`
+directory, avoiding runtime dependencies on a sibling source checkout.
+
+`npm pack` checks and includes the backend, production views/assets, and
+cross-platform `anubis-web` CLI, but not private data, `.env`, or source-only
+renderer dependencies. `npm run test-distribution` packs the Web runtime,
+installs that tarball with production dependencies from the Anubis registry,
+and checks the installed CLI, strong managed-default configuration, rejected
+and successful Web login, and a real browser terminal outside the checkout.
+Its browser launch explicitly selects standalone mode, and a separate managed
+startup check uses only a deliberately unavailable local fixture, so neither
+enrolls a test installation into the public gateway. Set `ANUBIS_WEB_TARBALL`
+to an existing tarball's absolute path to verify that exact release artifact
+instead of packing a temporary candidate.
+
 For the controlled VNC framebuffer/keyboard/pointer check, also set
 `ANUBIS_VNC_FIXTURE_MODULE` to the absolute path of
 `app/src/test/integration/lib/vnc-test-server.js` in the combined source workspace
@@ -87,7 +177,7 @@ external-protocol check is reported as skipped, not passed.
 
 ## Notes
 
-- all dependencies resolve to the `@ai-security-tool/*` scope (set `NPM_REGISTRY_URL`, see `.npmrc`).
+- The default registry and `@ai-security-tool/*` scope both point to `https://npm.anubis.locker/` (see `.npmrc`).
 - Upstream attribution is kept in `LICENSE` and widget author fields.
 
 ## License

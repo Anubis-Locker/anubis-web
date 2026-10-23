@@ -6,13 +6,14 @@ import { applyExtensions } from '../lib/extensions.js'
 import morgan from 'morgan'
 import {
   isDev,
-  cwd
+  appRoot
 } from '../common/runtime-constants.js'
 import { resolve } from 'path'
 import log from '../common/log.js'
 import { applySystemCAsToGlobalAgent } from '../lib/system-ca.js'
+import { managedMcpProxy } from '../lib/managed-mcp.js'
 
-export async function createApp () {
+export async function createApp ({ managedLocalAuth } = {}) {
   const loadedCount = applySystemCAsToGlobalAgent()
   if (loadedCount > 0) {
     log.info(`[TLS] loaded ${loadedCount} system CA certificate(s) into main process`)
@@ -42,6 +43,9 @@ export async function createApp () {
     }
     next()
   })
+  if (managedLocalAuth) {
+    app.all('/mcp', managedMcpProxy({ secret: managedLocalAuth }))
+  }
   // parse application/x-www-form-urlencoded
   app.use(express.urlencoded({ extended: true }))
 
@@ -61,8 +65,8 @@ export async function createApp () {
     process.env.VIEW_FOLDER ||
     (
       !isDev
-        ? resolve(cwd, 'dist/views')
-        : resolve(cwd, 'src/app/views')
+        ? resolve(appRoot, 'dist/views')
+        : resolve(appRoot, 'src/app/views')
     )
   )
   app.set('x-powered-by', false)

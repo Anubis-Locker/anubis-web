@@ -5,6 +5,8 @@
 #   ANUBIS_REPO_URL  git url   (default: https://github.com/Anubis-Locker/anubis-web.git)
 #   ANUBIS_REF       branch/tag to checkout (default: repo default branch)
 #   ANUBIS_DIR       target dir (default: ./anubis-web)
+#   ANUBIS_MANAGED_URL gateway origin (default: https://api.anubis.locker)
+#   ANUBIS_MANAGED_ACCESS=0 explicit standalone install (default: managed)
 set -Eeuo pipefail
 
 REPO_URL="${ANUBIS_REPO_URL:-https://github.com/Anubis-Locker/anubis-web.git}"
@@ -51,30 +53,13 @@ fi
 
 cd "${TARGET_DIR}"
 
-if [ ! -f .env ]; then
-  [ -f .sample.env ] || die ".sample.env missing in checkout"
-  cp .sample.env .env
-  # generate strong secrets so the server can start right away
-  if command -v openssl >/dev/null 2>&1; then
-    SECRET="$(openssl rand -hex 32)"
-    PASS="$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-20)"
-  else
-    SECRET="$(node -p "require('crypto').randomBytes(32).toString('hex')")"
-    PASS="$(node -p "require('crypto').randomBytes(15).toString('base64url')")"
-  fi
-  sed -i.bak -e "s|^SERVER_SECRET=.*|SERVER_SECRET=${SECRET}|" -e "s|^SERVER_PASS=.*|SERVER_PASS=${PASS}|" .env
-  rm -f .env.bak
-  chmod 600 .env
-  log "created .env with generated SERVER_SECRET; login: user 'admin', password: ${PASS}"
-  log "(stored in $(pwd)/.env - change it as you like)"
-else
-  log ".env already exists, leaving it untouched"
-fi
+node scripts/configure-managed.js
 
 log "installing dependencies"
+export NPM_REGISTRY_URL="${NPM_REGISTRY_URL:-https://npm.anubis.locker/}"
 npm install --legacy-peer-deps
 log "building"
 npm run build
 
-log "done. Start with:  cd ${TARGET_DIR} && ./run-electerm-web.sh   (http://127.0.0.1:5577)"
-log "Put nginx + TLS in front for remote use: see examples/nginx-ssl.conf"
+log "done. Start with:  cd ${TARGET_DIR} && npm run managed   (local: http://127.0.0.1:5577)"
+log "Web login credentials are stored in .env; the gateway also requires administrator approval and browser login."

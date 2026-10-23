@@ -4,7 +4,7 @@ import { index } from '../lib/view.js'
 import { getConstants } from '../lib/get-constants.js'
 import { resolve } from 'path'
 import {
-  cwd,
+  appRoot,
   isDev
 } from '../common/runtime-constants.js'
 import {
@@ -20,14 +20,14 @@ export function httpRoutes (app) {
   fileTransferRoutes(app)
   if (isDev) {
     app.use(express.static(
-      resolve(cwd, 'node_modules')
+      resolve(appRoot, 'node_modules')
     ))
     app.use(express.static(
-      resolve(cwd, 'src/client/statics')
+      resolve(appRoot, 'src/client/statics')
     ))
   } else {
     app.use(express.static(
-      resolve(cwd, 'dist/assets')
+      resolve(appRoot, 'dist/assets')
     ))
   }
 }

@@ -8,7 +8,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV npm_config_legacy_peer_deps=true
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 COPY build ./build
 RUN npm ci
 COPY . .

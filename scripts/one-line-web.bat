@@ -4,6 +4,8 @@ rem Optional env vars:
 rem   ANUBIS_REPO_URL  git url (default https://github.com/Anubis-Locker/anubis-web.git)
 rem   ANUBIS_REF       branch/tag (default: repo default branch)
 rem   ANUBIS_DIR       target dir (default anubis-web)
+rem   ANUBIS_MANAGED_URL gateway origin (default https://api.anubis.locker)
+rem   ANUBIS_MANAGED_ACCESS=0 explicit standalone install (default managed)
 setlocal EnableExtensions
 
 if not defined ANUBIS_REPO_URL set "ANUBIS_REPO_URL=https://github.com/Anubis-Locker/anubis-web.git"
@@ -34,20 +36,15 @@ if exist "%ANUBIS_DIR%\.git" (
 
 cd /d "%ANUBIS_DIR%" || (echo [anubis] ERROR: cannot enter %ANUBIS_DIR%. & exit /b 1)
 
-if not exist .env (
-  if not exist .sample.env (echo [anubis] ERROR: .sample.env missing. & exit /b 1)
-  copy /y .sample.env .env >nul
-  rem generate strong secrets (uses node's crypto) and write them into .env
-  node -e "const c=require('crypto'),fs=require('fs');const s=c.randomBytes(32).toString('hex'),p=c.randomBytes(15).toString('base64url');let t=fs.readFileSync('.env','utf8').replace(/^SERVER_SECRET=.*$/m,'SERVER_SECRET='+s).replace(/^SERVER_PASS=.*$/m,'SERVER_PASS='+p);fs.writeFileSync('.env',t);console.log('[anubis] created .env; login user: admin, password: '+p)" || (echo [anubis] ERROR: could not generate .env. & exit /b 1)
-) else (
-  echo [anubis] .env already exists, leaving it untouched
-)
+node scripts\configure-managed.js || (echo [anubis] ERROR: could not configure installation. & exit /b 1)
 
 echo [anubis] installing dependencies
+if not defined NPM_REGISTRY_URL set "NPM_REGISTRY_URL=https://npm.anubis.locker/"
 call npm install --legacy-peer-deps || (echo [anubis] ERROR: npm install failed. & exit /b 1)
 echo [anubis] building
 call npm run build || (echo [anubis] ERROR: npm run build failed. & exit /b 1)
 
-echo [anubis] done. Start with: cd %ANUBIS_DIR% ^&^& npm run prod   (http://127.0.0.1:5577)
+echo [anubis] done. Start with: cd %ANUBIS_DIR% ^&^& npm run managed   (local: http://127.0.0.1:5577)
+echo [anubis] Web login credentials are stored in .env; first gateway fingerprint approval is required.
 endlocal
 exit /b 0

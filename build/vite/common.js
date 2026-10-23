@@ -12,7 +12,7 @@ export const isMac = env.PLATFORM === 'darwin'
 export const isWin = env.PLATFORM === 'win32'
 const packPath = resolve(cwd, 'package.json')
 export const pack = JSON.parse(readFileSync(packPath).toString())
-export const version = pack.version
+export const version = pack.devDependencies['@ai-security-tool/electerm-react']
 export const viewPath = resolve(cwd, 'src/app/views')
 // brand resource package: BRAND_RES_DIR | ../resource | node_modules/@ai-security-tool/resource
 export const resourceDir = resolveBrandResDir(cwd)

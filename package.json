@@ -1,12 +1,18 @@
 {
   "name": "anubis-web",
-  "version": "5.6.11",
+  "version": "5.6.12",
   "description": "Anubis-Security-Tool: unified terminal, SSH, SFTP, RDP, VNC, Spice, MCP and batch workflows.",
   "main": "src/app/app.js",
   "type": "module",
+  "bin": {
+    "anubis-web": "npm/anubis-web.js"
+  },
   "scripts": {
     "dev": "NODE_ENV=development node ./src/app/app.js",
     "prod": "NODE_ENV=production node ./src/app/app.js",
+    "managed": "node scripts/start-managed.js",
+    "setup-managed": "node scripts/configure-managed.js",
+    "prepack": "node build/bin/verify-package.js",
     "build": "npm run compile",
     "start": "NODE_ENV=development node ./build/vite/dev-server.js",
     "clean": "node build/bin/clean",
@@ -21,7 +27,10 @@
     "test1": "./node_modules/.bin/playwright test test/e2e/00*.js --config test/playwright.conf.js",
     "test2": "./node_modules/.bin/playwright test test/e2e/01*.js --config test/playwright.conf.js",
     "test3": "node --test test/unit/*.js",
-    "test-packaged-web": "node --test test/packaged/web-smoke.js"
+    "test-packaged-web": "node --test test/packaged/web-smoke.js",
+    "test-managed-web": "node --test test/packaged/managed-web.js",
+    "test-distribution": "node --test test/packaged/npm-distribution.js",
+    "stage-browser-assets": "node build/bin/browser-assets.js"
   },
   "license": "MIT",
   "languageRepo": "https://github.com/Anubis-Locker/anubis-locales",
@@ -45,6 +54,9 @@
     "node": ">=24.0.0"
   },
   "preferGlobal": true,
+  "publishConfig": {
+    "registry": "https://npm.anubis.locker/"
+  },
   "devDependencies": {
     "@ai-security-tool/electerm-react": "5.6.11",
     "@ai-security-tool/icons": "1.0.1",
@@ -91,6 +103,7 @@
   "dependencies": {
     "@ai-security-tool/ftp-srv": "^1.0.6",
     "@ai-security-tool/locales": "2.3.34",
+    "@ai-security-tool/managed-access": "1.0.1",
     "@ai-security-tool/ssh2": "1.22.1",
     "@ai-security-tool/ssh2-scp": "3.3.0",
     "@ai-security-tool/sync": "2.1.0",
@@ -151,6 +164,14 @@
   },
   "files": [
     "npm",
+    "src/app",
+    "dist/assets",
+    "dist/views",
+    "scripts/configure-managed.js",
+    "scripts/start-managed.js",
+    "build/bin/install.js",
+    "build/bin/verify-package.js",
+    ".sample.env",
     "README.md",
     "LICENSE"
   ],

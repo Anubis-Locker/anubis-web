@@ -1369,19 +1369,40 @@ class ElectermMCPServer {
   }
 }
 
+const managedInstances = new Set()
+
+function getManagedMcpTarget () {
+  for (const instance of managedInstances) {
+    const address = instance.httpServer?.address()
+    if (address && typeof address !== 'string' && address.address === '127.0.0.1' &&
+        instance.authToken) {
+      return { port: address.port, token: instance.authToken }
+    }
+  }
+  return null
+}
+
 function widgetRun (instanceConfig, ctx = {}) {
   const config = { ...getDefaultConfig(), ...instanceConfig }
   const mcpServer = new ElectermMCPServer(config, ctx)
 
   return {
     instanceId: mcpServer.instanceId,
-    start: () => mcpServer.start(),
-    stop: () => mcpServer.stop()
+    start: async () => {
+      const result = await mcpServer.start()
+      managedInstances.add(mcpServer)
+      return result
+    },
+    stop: () => {
+      managedInstances.delete(mcpServer)
+      return mcpServer.stop()
+    }
   }
 }
 
 export {
   widgetInfo,
   widgetRun,
+  getManagedMcpTarget,
   ElectermMCPServer
 }

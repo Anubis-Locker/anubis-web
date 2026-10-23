@@ -7,6 +7,7 @@ import {
   isMac,
   isWin,
   packInfo,
+  assetVersion,
   home,
   extIconPath,
   defaultUserName,
@@ -20,11 +21,12 @@ import { isAuthEnabled } from './security.js'
 import { brand, defaultAIPreset } from '../common/brand.config.js'
 import { createRequire } from 'module'
 
-const clientBrand = createRequire(import.meta.url)('../common/brand.client.cjs')
 import { logDir } from '../server/session-log.js'
 import { getLogDir } from '../widgets/instance-log.js'
 import { resolve } from 'path'
 import fs from 'fs'
+
+const clientBrand = createRequire(import.meta.url)('../common/brand.client.cjs')
 
 let needMigrate
 
@@ -86,7 +88,7 @@ export async function index (req, res) {
     isWin,
     packInfo,
     home,
-    version: packInfo.version,
+    version: assetVersion,
     siteName: brand.name,
     brand: clientBrand,
     defaultAIPreset,

@@ -1,9 +1,11 @@
 import os from 'os'
 import { resolve } from 'path'
+import { fileURLToPath } from 'node:url'
 import getJson from './get-json.js'
 import { resolveBrandResDir } from './brand-res.js'
 
 export const cwd = process.cwd()
+export const appRoot = fileURLToPath(new URL('../../../', import.meta.url))
 
 const platform = os.platform()
 const arch = os.arch()
@@ -19,9 +21,9 @@ export const isLinux = platform === 'linux'
 export const isArm = arch.includes('arm')
 export const isDev = NODE_ENV === 'development'
 export const iconPath = resolve(
-  cwd,
+  appRoot,
   isDev
-    ? resolve(resolveBrandResDir(cwd), 'res/imgs/electerm-round-128x128.png')
+    ? resolve(resolveBrandResDir(appRoot), 'res/imgs/electerm-round-128x128.png')
     : 'dist/assets/images/electerm-round-128x128.png'
 )
 export const extIconPath = isDev
@@ -34,6 +36,7 @@ export const defaultLang = 'en_us'
 export const tempDir = os.tmpdir()
 export const homeOrTmp = os.homedir() || os.tmpdir()
 export const packInfo = getJson(
-  resolve(cwd, 'package.json')
+  resolve(appRoot, 'package.json')
 )
+export const assetVersion = packInfo.devDependencies['@ai-security-tool/electerm-react']
 export const isTest = !!NODE_TEST
