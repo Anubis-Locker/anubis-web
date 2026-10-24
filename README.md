@@ -1,6 +1,12 @@
-# Anubis-Security-Tool (web)
+# 🌐 Anubis-Security-Tool Web
 
-Browser-based terminal / SSH / SFTP / RDP / VNC client, a hardened fork of [electerm-web](https://github.com/electerm/electerm-web) (MIT, © ZHAO Xudong). Brand values live in `src/app/common/brand.config.js`.
+Browser-based terminal / SSH / SFTP / RDP / VNC client, with standalone and
+approved managed-device access. Brand values live in `src/app/common/brand.config.js`.
+
+[Website](https://anubis.locker) · [Desktop](https://github.com/Anubis-Locker/anubis) · [Managed transport](https://github.com/Anubis-Locker/anubis-managed-access)
+
+Original MIT copyright and attribution, including © ZHAO Xudong, are preserved
+in [LICENSE](LICENSE).
 
 Chinese: [README_cn.md](README_cn.md)
 
